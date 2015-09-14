@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{Simple Apple Push Notifications sender}
   spec.description   = %q{Simple Apple Push Notifications sender}
-  spec.homepage      = ""
+  spec.homepage      = "https://github.com/Antiarchitect/apns_simple"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
