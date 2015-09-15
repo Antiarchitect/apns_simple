@@ -19,7 +19,7 @@ module ApnsSimple
       payload[:aps][:alert] = alert if alert
       payload[:aps][:badge] = badge if badge
       payload[:aps][:sound] = sound if sound
-      payload[:aps][:content_available] = 1 if content_available
+      payload[:aps]['content-available'] = 1 if content_available
 
       packed_message = payload.to_json.gsub(/\\u([\da-fA-F]{4})/) {|m| [$1].pack("H*").unpack("n*").pack("U*")}
       packed_token = [token.gsub(/[\s|<|>]/,'')].pack('H*')
