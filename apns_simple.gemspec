@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["andrey.voronkov@medm.com"]
 
   spec.summary       = %q{Simple Apple Push Notifications sender}
-  spec.description   = %q{Simple Apple Push Notifications sender}
+  spec.description   = %q{Simple Apple Push Notifications sender for the sake of good}
   spec.homepage      = "https://github.com/Antiarchitect/apns_simple"
   spec.license       = "MIT"
 
