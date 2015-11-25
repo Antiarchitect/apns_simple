@@ -4,7 +4,9 @@ require 'socket'
 module ApnsSimple
   class Client
 
-    attr_reader :certificate, :ssl_context, :host, :port
+    class CertificateActivenessTimeError < StandardError; end
+
+    attr_reader :ssl_context, :host, :port
 
     COMMAND = 8
     CODES = {
@@ -22,10 +24,18 @@ module ApnsSimple
     }
 
     def initialize(options)
-      @certificate = options.fetch(:certificate)
-      passphrase = options[:passphrase] || ''
+      certificate = options.fetch(:certificate)
+      current_time = Time.now.utc
+      cert = OpenSSL::X509::Certificate.new(certificate)
+      if current_time < cert.not_before || current_time > cert.not_after
+        raise CertificateActivenessTimeError, "CURRENT_TIME: #{current_time}, NOT_BEFORE: #{cert.not_before}, NOT_AFTER: #{cert.not_after}"
+      end
+
       @ssl_context = OpenSSL::SSL::SSLContext.new
-      @ssl_context.key = OpenSSL::PKey::RSA.new(certificate, passphrase)
+      ssl_context.cert = cert
+
+      passphrase = options[:passphrase] || ''
+      ssl_context.key = OpenSSL::PKey::RSA.new(certificate, passphrase)
       
       gateway_uri = options[:gateway_uri] || 'apn://gateway.push.apple.com:2195'
       @host, @port = parse_gateway_uri(gateway_uri)
@@ -33,12 +43,6 @@ module ApnsSimple
 
     def push(notification)
       begin
-        current_time = Time.now.utc
-        cert = OpenSSL::X509::Certificate.new(certificate)
-        if current_time < cert.not_before || current_time > cert.not_after
-          raise CertificateActivenessTimeError, "CURRENT_TIME: #{current_time}, NOT_BEFORE: #{cert.not_before}, NOT_AFTER: #{cert.not_after}"
-        end
-        ssl_context.cert = cert
         sock = TCPSocket.new(host, port)
         ssl = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
         ssl.connect
