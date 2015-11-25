@@ -31,7 +31,7 @@ module ApnsSimple
     def push(notification)
       begin
         ctx = OpenSSL::SSL::SSLContext.new
-        ctx.ssl_version = :SSLv3
+        ctx.ssl_version = :TLSv1
         ctx.key = OpenSSL::PKey::RSA.new(certificate, passphrase)
         ctx.cert = OpenSSL::X509::Certificate.new(certificate)
 
