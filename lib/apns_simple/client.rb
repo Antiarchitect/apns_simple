@@ -4,9 +4,7 @@ require 'socket'
 module ApnsSimple
   class Client
 
-    class CertificateActivenessTimeError < StandardError; end
-
-    attr_reader :ssl_context, :host, :port
+    attr_reader :certificate, :ssl_context, :host, :port
 
     COMMAND = 8
     CODES = {
@@ -24,7 +22,7 @@ module ApnsSimple
     }
 
     def initialize(options)
-      certificate = options.fetch(:certificate)
+      @certificate = options.fetch(:certificate)
       passphrase = options[:passphrase] || ''
       @ssl_context = OpenSSL::SSL::SSLContext.new
       @ssl_context.key = OpenSSL::PKey::RSA.new(certificate, passphrase)
@@ -35,9 +33,9 @@ module ApnsSimple
 
     def push(notification)
       begin
-        current_time = Time.current
+        current_time = Time.now.utc
         cert = OpenSSL::X509::Certificate.new(certificate)
-        if cert.not_before > current_time || cert.not_after < current_time
+        if current_time < cert.not_before || current_time > cert.not_after
           raise CertificateActivenessTimeError, "CURRENT_TIME: #{current_time}, NOT_BEFORE: #{cert.not_before}, NOT_AFTER: #{cert.not_after}"
         end
         ssl_context.cert = cert
