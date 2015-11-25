@@ -4,7 +4,7 @@ require 'socket'
 module ApnsSimple
   class Client
 
-    attr_reader :certificate, :passphrase, :host, :port
+    attr_reader :ssl_context, :host, :port
 
     COMMAND = 8
     CODES = {
@@ -22,20 +22,20 @@ module ApnsSimple
     }
 
     def initialize(options)
-      @certificate = options.fetch(:certificate)
-      @passphrase = options[:passphrase] || ''
+      certificate = options.fetch(:certificate)
+      passphrase = options[:passphrase] || ''
+      @ssl_context = OpenSSL::SSL::SSLContext.new(:TLSv1)
+      @ssl_context.key = OpenSSL::PKey::RSA.new(certificate, passphrase)
+      @ssl_context.cert = OpenSSL::X509::Certificate.new(certificate)
+      
       gateway_uri = options[:gateway_uri] || 'apn://gateway.push.apple.com:2195'
       @host, @port = parse_gateway_uri(gateway_uri)
     end
 
     def push(notification)
       begin
-        ctx = OpenSSL::SSL::SSLContext.new(:TLSv1)
-        ctx.key = OpenSSL::PKey::RSA.new(certificate, passphrase)
-        ctx.cert = OpenSSL::X509::Certificate.new(certificate)
-
         sock = TCPSocket.new(host, port)
-        ssl = OpenSSL::SSL::SSLSocket.new(sock, ctx)
+        ssl = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
         ssl.connect
         ssl.write(notification.payload)
         ssl.flush
