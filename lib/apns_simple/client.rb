@@ -22,6 +22,7 @@ module ApnsSimple
       10 => 'Shutdown',
       255 => 'Unknown error'
     }
+    TIMEOUT = 5 # In seconds
 
     def initialize(options)
       certificate = options.fetch(:certificate)
@@ -49,7 +50,12 @@ module ApnsSimple
         ssl.write(notification.payload)
         ssl.flush
 
-        if IO.select([ssl], nil, nil, 1) && error = ssl.read(6)
+        unless IO.select([ssl], nil, nil, TIMEOUT)
+          notification.error = "No response from APNS server received in #{TIMEOUT} seconds. Exit by timeout."
+          return
+        end
+
+        if (error = ssl.read(6))
           command, status, _index = error.unpack("ccN")
           notification.error = command == COMMAND ? "#{status}: #{CODES[status]}" : "Unknown command received from APNS server: #{command}"
         end
