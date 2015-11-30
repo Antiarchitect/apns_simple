@@ -50,12 +50,17 @@ module ApnsSimple
         ssl.write(notification.payload)
         ssl.flush
 
-        unless IO.select([ssl], nil, nil, TIMEOUT)
+        result = IO.select([ssl], nil, nil, TIMEOUT)
+
+        unless result
           notification.error = "No response from APNS server received in #{TIMEOUT} seconds. Exit by timeout."
           return
         end
 
-        if (error = ssl.read(6))
+        readables = result.first # Array of readable sockets.
+        readable_ssl_socket = readables.first # Find one and only socket we are watching.
+
+        if (error = readable_ssl_socket.read(6))
           command, status, _index = error.unpack("ccN")
           notification.error = command == COMMAND ? "#{status}: #{CODES[status]}" : "Unknown command received from APNS server: #{command}"
         end
