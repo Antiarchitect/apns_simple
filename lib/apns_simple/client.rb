@@ -46,23 +46,29 @@ module ApnsSimple
       begin
         sock = TCPSocket.new(host, port)
         ssl = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
+        ssl.sync = true
         ssl.connect
         ssl.write(notification.payload)
-        ssl.flush
 
-        result = IO.select([ssl], nil, nil, TIMEOUT)
+        ready = IO.select([ssl], [], [], TIMEOUT)
 
-        unless result
-          notification.error = "No response from APNS server received in #{TIMEOUT} seconds. Exit by timeout."
+        unless ready
+          notification.error = true
+          notification.error_message = "No response from APNS server received in #{TIMEOUT} seconds. Exit by timeout."
           return
         end
 
-        readables = result.first # Array of readable sockets.
-        readable_ssl_socket = readables.first # Find one and only socket we are watching.
+        readable_ssl_socket = ready.first.first
 
         if (error = readable_ssl_socket.read(6))
-          command, status, _index = error.unpack("ccN")
-          notification.error = command == COMMAND ? "#{status}: #{CODES[status]}" : "Unknown command received from APNS server: #{command}"
+          notification.error = true
+          command, code, _index = error.unpack('ccN')
+          if command == COMMAND
+            notification.error_code = code
+            notification.error_message = "CODE: #{code}, DESCRIPTION: #{CODES[code]}"
+          else
+            notification.error_message = "Unknown command received from APNS server: #{command}"
+          end
         end
       ensure
         ssl.close if ssl

@@ -4,7 +4,7 @@ module ApnsSimple
   class Notification
 
     attr_reader :token, :alert, :badge, :sound, :content_available, :custom_payload
-    attr_accessor :error
+    attr_accessor :error, :error_message, :error_code
 
     def initialize(options, custom_payload = {})
       @token = options.fetch(:token)
