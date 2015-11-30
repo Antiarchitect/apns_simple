@@ -8,6 +8,9 @@ module ApnsSimple
 
     attr_reader :ssl_context, :host, :port
 
+    DEFAULT_CERTIFICATE_PASSWORD = ''
+    DEFAULT_GATEWAY_URI = 'apn://gateway.push.apple.com:2195'
+    ERROR_BYTES_COUNT = 6
     COMMAND = 8
     CODES = {
       0 => 'No errors encountered',
@@ -35,15 +38,16 @@ module ApnsSimple
       @ssl_context = OpenSSL::SSL::SSLContext.new
       ssl_context.cert = cert
 
-      passphrase = options[:passphrase] || ''
+      passphrase = options[:passphrase] || DEFAULT_CERTIFICATE_PASSWORD
       ssl_context.key = OpenSSL::PKey::RSA.new(certificate, passphrase)
       
-      gateway_uri = options[:gateway_uri] || 'apn://gateway.push.apple.com:2195'
+      gateway_uri = options[:gateway_uri] || DEFAULT_GATEWAY_URI
       @host, @port = parse_gateway_uri(gateway_uri)
     end
 
     def push(notification)
       begin
+        notification.error = true
         sock = TCPSocket.new(host, port)
         ssl = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
         ssl.sync = true
@@ -53,15 +57,13 @@ module ApnsSimple
         ready = IO.select([ssl], [], [], TIMEOUT)
 
         unless ready
-          notification.error = true
           notification.error_message = "No response from APNS server received in #{TIMEOUT} seconds. Exit by timeout."
           return
         end
 
         readable_ssl_socket = ready.first.first
 
-        if (error = readable_ssl_socket.read(6))
-          notification.error = true
+        if (error = readable_ssl_socket.read(ERROR_BYTES_COUNT))
           command, code, _index = error.unpack('ccN')
           if command == COMMAND
             notification.error_code = code
@@ -69,6 +71,8 @@ module ApnsSimple
           else
             notification.error_message = "Unknown command received from APNS server: #{command}"
           end
+        else
+          notification.error = false
         end
       ensure
         ssl.close if ssl
