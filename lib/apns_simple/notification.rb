@@ -22,17 +22,37 @@ module ApnsSimple
       payload_hash[:aps]['content-available'] = 1 if content_available
       payload_hash.merge! custom_payload
 
-      packed_token = [token.gsub(/[<\s>]/,'')].pack('H*')
-      packed_message = payload_hash.to_json.gsub(/\\u([\da-fA-F]{4})/) {|m| [$1].pack("H*").unpack("n*").pack("U*")}
-      payload_size = packed_message.bytesize
+      token_item = pack_token_item(token)
+      payload_item = pack_payload_item(payload_hash)
+      frame = compose_frame(token_item, payload_item)
+      @payload = pack_frame(frame)
+    end
 
-      if payload_size > PAYLOAD_MAX_BYTESIZE
-        self.error = true
-        self.error_message = "Payload size is #{payload_size} bytes but maximum #{PAYLOAD_MAX_BYTESIZE} bytes allowed."
+    private
+
+      def pack_frame(frame)
+        [2, frame.bytesize, frame].pack('cNa*')
       end
 
-      @payload = [0, 0, 32, packed_token, 0, payload_size, packed_message].pack("ccca*cca*")
-    end
+      def compose_frame(*args)
+        args.compact.join
+      end
+
+      def pack_token_item(token)
+        [1, 32, token.gsub(/[<\s>]/, '')].pack('cnH64')
+      end
+
+      def pack_payload_item(hash)
+        json = hash.to_json.gsub(/\\u([\da-fA-F]{4})/) { |m| [$1].pack('H*').unpack('n*').pack('U*') }
+        size = json.bytesize
+
+        if size > PAYLOAD_MAX_BYTESIZE
+          self.error = true
+          self.error_message = "Payload size is #{size} bytes but maximum #{PAYLOAD_MAX_BYTESIZE} bytes allowed."
+        end
+
+        [2, size, json].pack('cna*')
+      end
 
   end
 end
