@@ -31,7 +31,7 @@ module ApnsSimple
         self.error_message = "Payload size is #{payload_size} bytes but maximum #{PAYLOAD_MAX_BYTESIZE} bytes allowed."
       end
 
-      self.payload = [0, 0, 32, packed_token, 0, payload_size, packed_message].pack("ccca*cca*")
+      @payload = [0, 0, 32, packed_token, 0, payload_size, packed_message].pack("ccca*cca*")
     end
 
   end
