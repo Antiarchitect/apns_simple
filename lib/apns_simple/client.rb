@@ -46,29 +46,32 @@ module ApnsSimple
     end
 
     def push(notification)
-      sock = TCPSocket.new(host, port)
-      ssl = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
-      ssl.sync = true
-      ssl.connect
-      ssl.write(notification.payload)
+      unless notification.error
+        begin
+          sock = TCPSocket.new(host, port)
+          ssl = OpenSSL::SSL::SSLSocket.new(sock, ssl_context)
+          ssl.sync = true
+          ssl.connect
+          ssl.write(notification.payload)
 
-      if (ready = IO.select([ssl], [], [], TIMEOUT))
-        readable_ssl_socket = ready.first.first
-        if (error = readable_ssl_socket.read(ERROR_BYTES_COUNT))
-          command, code, _index = error.unpack('ccN')
-          notification.error = true
-          if command == COMMAND
-            notification.error_code = code
-            notification.error_message = "CODE: #{code}, DESCRIPTION: #{CODES[code]}"
-          else
-            notification.error_message = "Unknown command received from APNS server: #{command}"
+          if (ready = IO.select([ssl], [], [], TIMEOUT))
+            readable_ssl_socket = ready.first.first
+            if (error = readable_ssl_socket.read(ERROR_BYTES_COUNT))
+              command, code, _index = error.unpack('ccN')
+              notification.error = true
+              if command == COMMAND
+                notification.error_code = code
+                notification.error_message = "CODE: #{code}, DESCRIPTION: #{CODES[code]}"
+              else
+                notification.error_message = "Unknown command received from APNS server: #{command}"
+              end
+            end
           end
+        ensure
+          ssl.close if ssl
+          sock.close if sock
         end
       end
-
-    ensure
-      ssl.close if ssl
-      sock.close if sock
     end
 
     private
