@@ -12,6 +12,7 @@ module ApnsSimple
     DEFAULT_GATEWAY_URI = 'apn://gateway.push.apple.com:2195'
     ERROR_BYTES_COUNT = 6
     COMMAND = 8
+    INVALID_TOKEN_CODE = 8
     CODES = {
       0 => 'No errors encountered',
       1 => 'Processing error',
@@ -21,7 +22,7 @@ module ApnsSimple
       5 => 'Invalid token size',
       6 => 'Invalid topic size',
       7 => 'Invalid payload size',
-      8 => 'Invalid token',
+      INVALID_TOKEN_CODE => 'Invalid token',
       10 => 'Shutdown',
       255 => 'Unknown error'
     }
