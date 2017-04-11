@@ -12,7 +12,7 @@ module ApnsSimple
       token = options.fetch(:token)
       alert = options[:alert]
       badge = options[:badge]
-      sound = options[:sound] || 'default'
+      sound = options[:sound]
       content_available = options[:content_available]
 
       payload_hash = { aps: {} }
